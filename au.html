@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>APLYiD · Compliance Catchers — AML Tranche 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     APLYiD — AML Tranche 2 "House Catcher"
+     Retro cute-ugly desktop arcade. Single-file kiosk build.
+     Palette: cream #FFFDF8 · charcoal ink · red accent #CC3E28
+     ============================================================ */
+
+  :root{
+    --cream:#FFFDF8;
+    --ink:#26221E;
+    --ink-soft:#5a534b;
+    --red:#CC3E28;
+    --red-deep:#a52e1c;
+    --green:#3f7d54;
+    --green-soft:#e2efe4;
+    --red-soft:#f7e0da;
+    --paper-line:#e7e2d6;
+    --headline:"Bagoss Standard","Helvetica Neue", Helvetica, Arial, sans-serif;
+    --mono:"DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --pane-shadow: 6px 6px 0 rgba(38,34,30,.9);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:var(--mono);
+    color:var(--ink);
+    background:var(--cream);
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 27px, rgba(38,34,30,.035) 27px 28px),
+      radial-gradient(circle at 20% 10%, rgba(204,62,40,.04), transparent 60%);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+
+  h1,h2,h3,.headline{font-family:var(--headline);font-weight:700;letter-spacing:-.01em;margin:0;}
+  .accent{color:var(--red);}
+
+  /* ---------- SVG wobble border filter (scratchy edges) ---------- */
+  .svgdefs{position:absolute;width:0;height:0;overflow:hidden;}
+
+  /* ---------- Window-chrome panes ---------- */
+  .window{
+    position:relative;
+    background:var(--cream);
+    border:2.5px solid var(--ink);
+    box-shadow:var(--pane-shadow);
+  }
+  .window::before{
+    /* wonky hand-drawn overlay border */
+    content:"";
+    position:absolute;inset:-2.5px;
+    border:2.5px solid var(--ink);
+    filter:url(#wobble);
+    pointer-events:none;
+    opacity:.55;
+  }
+  .titlebar{
+    display:flex;align-items:center;gap:8px;
+    background:var(--ink);
+    color:var(--cream);
+    padding:6px 10px;
+    font-size:12px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+  }
+  .titlebar .dots{display:flex;gap:6px;}
+  .titlebar .dots i{
+    width:11px;height:11px;border-radius:50%;
+    display:inline-block;border:1.5px solid var(--cream);
+  }
+  .titlebar .dots i.r{background:var(--red);}
+  .titlebar .dots i.y{background:#e8b23a;}
+  .titlebar .dots i.g{background:#7fae7f;}
+  .titlebar .tt{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .titlebar .clock{opacity:.8;font-size:11px;}
+
+  /* ---------- Layout scaffold ---------- */
+  #app{
+    position:fixed;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    padding:18px;
+  }
+  .screen{display:none;width:100%;max-width:940px;}
+  .screen.active{display:block;animation:pop .25s ease;}
+  @keyframes pop{from{transform:scale(.985);opacity:.4}to{transform:scale(1);opacity:1}}
+
+  .pane-body{padding:26px 30px 30px;}
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    font-family:var(--mono);font-weight:500;
+    font-size:15px;
+    background:var(--cream);color:var(--ink);
+    border:2.5px solid var(--ink);
+    padding:12px 22px;cursor:pointer;
+    box-shadow:4px 4px 0 var(--ink);
+    transition:transform .05s, box-shadow .05s;
+    text-transform:uppercase;letter-spacing:.04em;
+  }
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink);}
+  .btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink);}
+  .btn.primary{background:var(--red);color:var(--cream);border-color:var(--ink);}
+  .btn.big{font-size:20px;padding:16px 34px;}
+  .btn.ghost{box-shadow:none;border-style:dashed;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* =========================================================
+     START SCREEN
+     ========================================================= */
+  .brandrow{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+  .aplyid-logo{
+    font-family:var(--headline);font-weight:700;font-size:26px;
+    letter-spacing:-.02em;color:var(--ink);
+  }
+  .aplyid-logo .dot{color:var(--red);}
+  .aplyid-logo-img{height:36px;width:auto;display:block;}
+  .badge{
+    font-size:11px;border:2px solid var(--ink);padding:3px 8px;
+    text-transform:uppercase;letter-spacing:.08em;background:var(--red);color:var(--cream);
+  }
+  .megatitle{
+    font-family:var(--headline);font-weight:700;
+    font-size:clamp(38px,8vw,74px);line-height:.92;letter-spacing:-.03em;
+    margin:14px 0 6px;
+  }
+  .megatitle small{display:block;font-size:clamp(15px,2.6vw,22px);letter-spacing:.02em;color:var(--ink-soft);font-weight:500;margin-top:10px;}
+  .start-grid{display:grid;grid-template-columns:1.35fr .9fr;gap:22px;align-items:stretch;}
+  @media(max-width:720px){.start-grid{grid-template-columns:1fr;}}
+  .rulebox{border:2px dashed var(--ink);padding:14px 16px;font-size:13px;line-height:1.55;background:#fff;}
+  .rulebox b{color:var(--red);}
+  .legend{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+  .legend .row{display:flex;align-items:center;gap:10px;font-size:12.5px;}
+  .swatch{width:26px;height:26px;border:2px solid var(--ink);border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:700;color:#fff;font-size:13px;}
+
+  /* scoreboard mini */
+  .board{width:100%;border-collapse:collapse;font-size:13px;}
+  .board th,.board td{text-align:left;padding:6px 8px;border-bottom:1.5px dashed var(--paper-line);}
+  .board th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);}
+  .board .rank{font-family:var(--headline);font-weight:700;width:34px;}
+  .board tr.top1 td{background:var(--red);color:var(--cream);}
+  .board tr.top2 td{background:#f2d9d2;}
+  .board tr.top3 td{background:#f8ece8;}
+  .board tr.me td{outline:2px solid var(--red);outline-offset:-2px;}
+  .board .sc{text-align:right;font-weight:500;}
+  .emptyboard{font-size:12.5px;color:var(--ink-soft);padding:14px 4px;font-style:italic;}
+
+  /* =========================================================
+     REGISTRATION
+     ========================================================= */
+  form.reg{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;}
+  form.reg .full{grid-column:1/-1;}
+  label.field{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:5px;}
+  label.field .req{color:var(--red);}
+  .input{
+    width:100%;font-family:var(--mono);font-size:16px;
+    padding:11px 12px;border:2.5px solid var(--ink);background:#fff;color:var(--ink);
+  }
+  .input:focus{outline:none;box-shadow:3px 3px 0 var(--red);}
+  .input.err{border-color:var(--red);background:var(--red-soft);}
+  .hint{font-size:11px;color:var(--ink-soft);margin-top:4px;min-height:14px;}
+  .hint.err{color:var(--red);}
+  .consent{font-size:11.5px;color:var(--ink-soft);line-height:1.5;grid-column:1/-1;display:flex;gap:8px;align-items:flex-start;}
+  .consent input{margin-top:2px;transform:scale(1.2);accent-color:var(--red);}
+
+  /* =========================================================
+     GAME
+     ========================================================= */
+  #gameHud{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;border-bottom:2.5px solid var(--ink);background:var(--cream);font-size:14px;}
+  .hud-item{display:flex;flex-direction:column;line-height:1.1;}
+  .hud-item .k{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
+  .hud-item .v{font-family:var(--headline);font-weight:700;font-size:24px;}
+  #hudScore .v{color:var(--red);}
+  #timerWrap{flex:1;max-width:280px;}
+  #timerBar{height:14px;border:2px solid var(--ink);background:#fff;overflow:hidden;}
+  #timerFill{height:100%;width:100%;background:var(--red);transition:width .25s linear;}
+  #stage{position:relative;width:100%;height:min(64vh,560px);overflow:hidden;background:
+      repeating-linear-gradient(0deg, transparent 0 33px, rgba(38,34,30,.04) 33px 34px);
+    cursor:none;}
+  .pill{
+    position:absolute;will-change:transform;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:0 12px;border:2.5px solid var(--ink);border-radius:22px;
+    font-size:12px;font-weight:500;line-height:1.05;
+    text-transform:uppercase;letter-spacing:.03em;
+    box-shadow:3px 3px 0 rgba(38,34,30,.55);
+    min-height:38px;min-width:74px;max-width:160px;
+  }
+  /* pills are multi-coloured for fun, but colour is RANDOM — it never
+     reveals whether the item is a good move or a red flag. */
+  #basket{position:absolute;bottom:0;left:0;width:210px;height:210px;pointer-events:none;transform:translateX(0);will-change:transform;}
+  #basket img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;filter:drop-shadow(3px 4px 0 rgba(38,34,30,.35));}
+
+  /* floating score feedback */
+  .float{position:absolute;font-family:var(--headline);font-weight:700;font-size:22px;pointer-events:none;animation:floatup .8s ease forwards;z-index:5;text-shadow:1px 1px 0 var(--cream);}
+  .float.plus{color:var(--green);}
+  .float.minus{color:var(--red);}
+  @keyframes floatup{from{transform:translateY(0);opacity:1}to{transform:translateY(-46px);opacity:0}}
+
+  #countdown{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,253,248,.86);z-index:20;}
+  #countdown .num{font-family:var(--headline);font-weight:700;font-size:150px;color:var(--red);animation:cd 1s ease;}
+  @keyframes cd{from{transform:scale(.3);opacity:0}40%{opacity:1}to{transform:scale(1.3);opacity:0}}
+
+  .flashborder{position:absolute;inset:0;pointer-events:none;z-index:8;box-shadow:inset 0 0 0 0 transparent;transition:box-shadow .12s;}
+  .flashborder.g{box-shadow:inset 0 0 0 10px rgba(63,125,84,.55);}
+  .flashborder.r{box-shadow:inset 0 0 0 10px rgba(204,62,40,.6);}
+
+  /* =========================================================
+     SCORE / RECAP
+     ========================================================= */
+  .score-hero{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;}
+  @media(max-width:720px){.score-hero{grid-template-columns:1fr;}}
+  .bigscore{font-family:var(--headline);font-weight:700;font-size:clamp(60px,15vw,120px);line-height:.9;color:var(--red);}
+  .placeline{font-size:16px;margin-top:6px;}
+  .placeline b{font-family:var(--headline);font-size:22px;}
+  .recap{max-height:300px;overflow:auto;border:2px dashed var(--ink);padding:10px 12px;background:#fff;}
+  .recap h3{font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;}
+  .recap .ri{display:flex;gap:8px;font-size:12px;line-height:1.4;padding:5px 0;border-bottom:1px dotted var(--paper-line);}
+  .recap .ri .ic{flex:0 0 20px;height:20px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:var(--headline);font-weight:700;font-size:12px;}
+  .recap .ri.g .ic{background:var(--green);}
+  .recap .ri.b .ic{background:var(--red);}
+  .recap .ri em{color:var(--ink-soft);font-style:normal;}
+
+  .row-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;}
+
+  /* admin */
+  #adminModal{position:fixed;inset:0;background:rgba(38,34,30,.55);display:none;place-items:center;z-index:50;padding:18px;}
+  #adminModal.open{display:grid;}
+  #gear{position:fixed;bottom:10px;right:12px;font-size:11px;color:var(--ink-soft);cursor:pointer;background:none;border:none;font-family:var(--mono);opacity:.5;z-index:40;}
+  #gear:hover{opacity:1;}
+  .kbd{border:1.5px solid var(--ink-soft);border-radius:4px;padding:1px 5px;font-size:11px;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--cream);padding:10px 18px;font-size:13px;z-index:60;box-shadow:var(--pane-shadow);display:none;}
+  .toast.show{display:block;animation:pop .2s ease;}
+
+  .footnote{font-size:10.5px;color:var(--ink-soft);margin-top:14px;line-height:1.5;}
+</style>
+</head>
+<body>
+
+<!-- ================= SVG FILTER DEFS + ART ================= -->
+<svg class="svgdefs" aria-hidden="true">
+  <filter id="wobble">
+    <feTurbulence type="fractalNoise" baseFrequency="0.02 0.03" numOctaves="2" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="3.5"/>
+  </filter>
+  <filter id="wobble2">
+    <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="2" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="2"/>
+  </filter>
+</svg>
+
+<div id="app">
+
+  <!-- ============ START / HOLD SCREEN ============ -->
+  <section class="screen active window" id="screen-start">
+    <div class="titlebar">
+      <span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+      <span class="tt">compliance_catchers.exe — AML Tranche&nbsp;2 edition</span>
+      <span class="clock" id="clock1"></span>
+    </div>
+    <div class="pane-body">
+      <div class="brandrow">
+        <img src="images/APLYiD-logo.svg" alt="APLYiD" class="aplyid-logo-img">
+        <span class="badge">Tranche 2 · Live 1 Jul 2026</span>
+      </div>
+      <h1 class="megatitle">COMPLIANCE<br><span class="accent">CATCHERS</span>
+        <small>Catch the good compliance moves. Dodge the red flags. No hints — 30 seconds on the clock.</small>
+      </h1>
+
+      <div class="start-grid">
+        <div>
+          <div class="rulebox">
+            You're a real estate agent under Australia's new <b>AML/CTF Tranche 2</b> rules.
+            Pills rain down naming a KYC / KYB / CTF / PEP action — but they <b>won't tell you</b> if it's smart or dodgy.
+            <b>Catch the good compliance moves (+10)</b> and <b>let the red flags fall past (−10 if you catch one)</b>.
+            You'll only find out if you were right when you catch it — trust your compliance instincts!
+            Build a streak for bonus points. Highest daily scores win prizes!
+            <div class="legend">
+              <div class="row"><span class="swatch" style="background:var(--green)">+</span> Caught a good move → <b>+10 &amp; green flash</b></div>
+              <div class="row"><span class="swatch" style="background:var(--red)">−</span> Caught a red flag → <b>−10 &amp; red flash</b></div>
+            </div>
+          </div>
+          <div class="row-actions">
+            <button class="btn primary big" id="toRegister">▶ Play</button>
+            <button class="btn ghost" id="howto">How to play</button>
+          </div>
+          <p class="footnote">Educational game for the event. Not legal advice. AML/CTF obligations for real estate professionals commence 1&nbsp;July&nbsp;2026 under AUSTRAC. Powered by APLYiD.</p>
+        </div>
+
+        <div class="window" style="box-shadow:4px 4px 0 var(--ink);">
+          <div class="titlebar"><span class="tt">🏆 daily_leaderboard.txt</span></div>
+          <div style="padding:10px 12px;">
+            <div id="startBoard"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REGISTRATION ============ -->
+  <section class="screen window" id="screen-register">
+    <div class="titlebar">
+      <span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+      <span class="tt">player_signup.form — enter your details to play</span>
+    </div>
+    <div class="pane-body">
+      <h2 class="headline" style="font-size:30px;margin-bottom:4px;">Before you play <span class="accent">→</span></h2>
+      <p style="font-size:13px;color:var(--ink-soft);margin:0 0 18px;">Pop your details in so we can crown the daily winners and follow up. Takes 15 seconds.</p>
+      <form class="reg" id="regForm" autocomplete="on" novalidate>
+        <div>
+          <label class="field" for="f-name">Full name <span class="req">*</span></label>
+          <input class="input" id="f-name" name="name" placeholder="Jordan Smith" maxlength="60">
+          <div class="hint" id="h-name"></div>
+        </div>
+        <div>
+          <label class="field" for="f-company">Company / agency <span class="req">*</span></label>
+          <input class="input" id="f-company" name="company" placeholder="Bright Realty" maxlength="80">
+          <div class="hint" id="h-company"></div>
+        </div>
+        <div>
+          <label class="field" for="f-phone">Mobile number <span class="req">*</span></label>
+          <input class="input" id="f-phone" name="phone" inputmode="tel" placeholder="0412 345 678" maxlength="20">
+          <div class="hint" id="h-phone"></div>
+        </div>
+        <div>
+          <label class="field" for="f-email">Email <span class="req">*</span></label>
+          <input class="input" id="f-email" name="email" inputmode="email" placeholder="you@agency.com.au" maxlength="80">
+          <div class="hint" id="h-email"></div>
+        </div>
+        <label class="consent full">
+          <input type="checkbox" id="f-consent">
+          <span>I'm happy for APLYiD to contact me about my score, prizes, and how APLYiD helps with AML Tranche 2 compliance.</span>
+        </label>
+        <div class="full row-actions">
+          <button type="submit" class="btn primary big" id="startGameBtn">Start the clock ▶</button>
+          <button type="button" class="btn ghost" id="backToStart">← Back</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section class="screen window" id="screen-game">
+    <div class="titlebar">
+      <span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+      <span class="tt">compliance_catchers — catch the good moves, dodge the flags!</span>
+      <span class="clock" id="playerTag"></span>
+    </div>
+    <div id="gameHud">
+      <div class="hud-item" id="hudScore"><span class="k">Score</span><span class="v" id="scoreVal">0</span></div>
+      <div class="hud-item"><span class="k">Streak</span><span class="v" id="streakVal">0</span></div>
+      <div id="timerWrap" class="hud-item"><span class="k">Time <span id="timeVal">30</span>s</span><div id="timerBar"><div id="timerFill"></div></div></div>
+    </div>
+    <div id="stage">
+      <div class="flashborder" id="flash"></div>
+      <!-- basket: APLYiD open-roof house catcher held by a hand -->
+      <div id="basket"><img src="images/House-Catcher.png" alt="" draggable="false"></div>
+      <div id="countdown"><span class="num">3</span></div>
+    </div>
+  </section>
+
+  <!-- ============ SCORE / RECAP ============ -->
+  <section class="screen window" id="screen-score">
+    <div class="titlebar">
+      <span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+      <span class="tt">your_result.txt — nice work!</span>
+    </div>
+    <div class="pane-body">
+      <div class="score-hero">
+        <div>
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);">Final score</div>
+          <div class="bigscore" id="finalScore">0</div>
+          <div class="placeline" id="placeLine"></div>
+          <div class="row-actions">
+            <button class="btn primary" id="playAgain">Play again</button>
+            <button class="btn ghost" id="viewBoard">See leaderboard</button>
+            <button class="btn ghost" id="finishBtn">Done / next player</button>
+          </div>
+        </div>
+        <div>
+          <div class="window" style="box-shadow:4px 4px 0 var(--ink);">
+            <div class="titlebar"><span class="tt">🏆 today's top scores</span></div>
+            <div style="padding:8px 10px;"><div id="scoreBoardMini"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="recap" id="recap" style="margin-top:20px;">
+        <h3>What you caught — the compliance debrief</h3>
+        <div id="recapList"></div>
+      </div>
+      <p class="footnote">Green = a real AML/CTF Tranche 2 good practice. Red = a genuine red flag AUSTRAC expects real estate professionals to spot. Want the full playbook? Talk to the APLYiD team.</p>
+    </div>
+  </section>
+
+</div>
+
+<!-- ADMIN -->
+<button id="gear">⚙ admin</button>
+<div id="adminModal">
+  <div class="window" style="max-width:470px;width:100%;max-height:90vh;overflow:auto;">
+    <div class="titlebar"><span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><span class="tt">admin_panel — staff only</span></div>
+    <div class="pane-body">
+      <div id="adminLogin">
+        <label class="field">Passcode</label>
+        <input class="input" id="adminPass" type="password" placeholder="••••••">
+        <div class="hint" id="adminHint"></div>
+        <div class="row-actions"><button class="btn primary" id="adminUnlock">Unlock</button><button class="btn ghost" id="adminClose1">Close</button></div>
+      </div>
+      <div id="adminPanel" style="display:none;">
+        <p style="font-size:13px;margin-top:0;">Players today: <b id="leadCountToday">0</b> · all time: <b id="leadCountAll">0</b></p>
+        <h3 style="font-family:var(--headline);font-size:15px;margin:4px 0 8px;">🏆 Today's Top 3 winners</h3>
+        <div id="adminTop3" style="margin-bottom:14px;"></div>
+        <div class="row-actions">
+          <button class="btn primary" id="exportTodayXls">⬇ Export today → Excel</button>
+          <button class="btn" id="exportAllXls">⬇ Export all → Excel</button>
+        </div>
+        <div class="row-actions">
+          <button class="btn ghost" id="exportToday">Today (CSV)</button>
+          <button class="btn ghost" id="exportAll">All (CSV)</button>
+        </div>
+        <div class="row-actions">
+          <button class="btn ghost" id="resetToday">Clear today's board</button>
+          <button class="btn ghost" id="resetAll">Wipe everything</button>
+        </div>
+        <p class="footnote">Excel export has two tabs: <b>Top 3</b> and the full <b>Players</b> list (name, company, phone, email, score). Data is stored only in this browser (localStorage) — export before closing or clearing. Passcode: change <span class="kbd">ADMIN_PASS</span> in the code.</p>
+        <div class="row-actions"><button class="btn ghost" id="adminClose2">Close</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const ADMIN_PASS = "aplyid";           // change before the event
+const SHEET_ENDPOINT = "";  // <-- paste your Google Apps Script Web App URL here to log scores to a shared Google Sheet
+const REGION = "Australia"; // this build's label in the sheet
+const GAME_SECONDS = 30;
+const STORE_KEY = "aplyid_aml_scores_v1";
+const POINT_GOOD = 10, POINT_BAD = -10, STREAK_BONUS = 5;
+/* APLYiD brand pill colours — assigned at random, unrelated to good/bad */
+const PILL_COLORS = [
+  {bg:"#CC3E28", fg:"#FFFDF8"},   // red
+  {bg:"#225953", fg:"#FFFDF8"},   // teal
+  {bg:"#FFD05D", fg:"#26221E"},   // yellow (dark text)
+  {bg:"#1931AC", fg:"#FFFDF8"}    // blue
+];
+
+/* ---------- AML content pool ----------
+   good = catch it (compliant action). bad = red flag, avoid. */
+const ITEMS = {
+  good:[
+    {t:"Verify photo ID", why:"Verify each customer's identity with reliable, independent documents before you act — the core of KYC."},
+    {t:"Screen for PEPs", why:"Check whether a customer is a Politically Exposed Person, who carries higher corruption/bribery risk."},
+    {t:"Record source of funds", why:"Establish and document where the money is coming from, especially for large or unusual purchases."},
+    {t:"File an SMR", why:"Lodge a Suspicious Matter Report to AUSTRAC when you have reasonable grounds to be suspicious."},
+    {t:"Enrol with AUSTRAC", why:"Reporting entities must enrol and register with AUSTRAC to operate under the AML/CTF regime."},
+    {t:"Find beneficial owner", why:"Identify the real person who ultimately owns or controls the buyer, not just the front company."},
+    {t:"Ongoing monitoring", why:"Keep monitoring the customer relationship and transactions for changes in risk over time."},
+    {t:"Keep records 7 yrs", why:"Retain customer identity and transaction records for at least 7 years."},
+    {t:"Sanctions check", why:"Screen customers against sanctions lists before providing a designated service."},
+    {t:"KYB the company", why:"Know Your Business — verify the company buyer's structure, directors and ownership."},
+    {t:"Report cash ≥ $10k", why:"Submit a Threshold Transaction Report for cash transactions of AUD 10,000 or more."},
+    {t:"Risk-based approach", why:"Assess and rate each customer's ML/TF risk and apply proportionate due diligence."},
+    {t:"Enhanced due diligence", why:"Apply extra scrutiny (EDD) to high-risk customers such as PEPs or complex offshore structures."},
+    {t:"Written AML program", why:"Maintain a documented AML/CTF program covering your policies, controls and risk assessment."}
+  ],
+  bad:[
+    {t:"Skip the ID check", why:"Never provide the service without verifying identity — that defeats KYC entirely."},
+    {t:"Accept $200k cash", why:"Large unexplained cash is a classic laundering red flag; it needs source-of-funds checks and a TTR."},
+    {t:"Ignore a PEP", why:"Failing to identify or escalate a PEP misses a major higher-risk indicator."},
+    {t:"Use a nominee buyer", why:"Buyers hiding behind nominees/third parties to obscure the true owner is a red flag."},
+    {t:"Don't ask source", why:"Not questioning where funds come from lets dirty money through unchecked."},
+    {t:"Rush the settlement", why:"Unusual urgency with no commercial reason is a common laundering red flag."},
+    {t:"Odd offshore layers", why:"Needlessly complex offshore ownership with no clear purpose is a high-risk indicator."},
+    {t:"Third-party payment", why:"Payment from an unrelated third party with no explanation is suspicious."},
+    {t:"Buy 40% over market", why:"Prices well above (or below) market value can signal value-transfer laundering."},
+    {t:"Keep no records", why:"Failing to keep identity and transaction records breaches your obligations."},
+    {t:"Tip off the client", why:"Warning a customer about an SMR is 'tipping off' — a criminal offence."},
+    {t:"Guess the ID", why:"Accepting unverified or dodgy documents is not real customer due diligence."}
+  ]
+};
+
+/* ============================================================
+   STORAGE
+   ============================================================ */
+function loadScores(){ try{return JSON.parse(localStorage.getItem(STORE_KEY))||[]}catch(e){return[]} }
+function saveScores(a){ localStorage.setItem(STORE_KEY, JSON.stringify(a)); }
+function sendToSheet(rec){
+  if(!SHEET_ENDPOINT) return;                 // no URL set -> game stays fully offline
+  try{
+    fetch(SHEET_ENDPOINT,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({region:REGION,name:rec.name,company:rec.company,phone:rec.phone,email:rec.email,score:rec.score,consent:rec.consent,iso:rec.iso})}).catch(function(){});
+  }catch(e){}
+}
+function todayKey(d=new Date()){ return d.toLocaleDateString('en-CA'); } // YYYY-MM-DD local
+function todaysScores(){ const t=todayKey(); return loadScores().filter(s=>s.date===t).sort((a,b)=>b.score-a.score); }
+
+/* ============================================================
+   SCREEN NAV
+   ============================================================ */
+const screens = { start:'screen-start', register:'screen-register', game:'screen-game', score:'screen-score' };
+function show(name){
+  Object.values(screens).forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById(screens[name]).classList.add('active');
+}
+
+/* ============================================================
+   LEADERBOARD RENDER
+   ============================================================ */
+function medal(i){ return ['🥇','🥈','🥉'][i]||''; }
+function renderBoard(el, highlightTs){
+  const rows = todaysScores();
+  if(!rows.length){ el.innerHTML='<div class="emptyboard">No scores yet today — be the first on the board!</div>'; return; }
+  let html='<table class="board"><thead><tr><th class="rank">#</th><th>Player</th><th>Company</th><th class="sc">Score</th></tr></thead><tbody>';
+  rows.slice(0,10).forEach((r,i)=>{
+    const cls=(i<3?('top'+(i+1)):'')+(r.ts===highlightTs?' me':'');
+    html+=`<tr class="${cls}"><td class="rank">${medal(i)||(i+1)}</td><td>${esc(r.name)}</td><td>${esc(r.company)}</td><td class="sc">${r.score}</td></tr>`;
+  });
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ============================================================
+   CLOCKS
+   ============================================================ */
+function tickClock(){ const s=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}); const c=document.getElementById('clock1'); if(c)c.textContent=s; }
+setInterval(tickClock,1000); tickClock();
+
+/* ============================================================
+   REGISTRATION
+   ============================================================ */
+let player = null;
+const F = id=>document.getElementById(id);
+document.getElementById('toRegister').onclick = ()=>{ show('register'); F('f-name').focus(); };
+document.getElementById('howto').onclick = ()=>toast("Move the house with your mouse or finger. Catch the good compliance moves, dodge the red flags — no hints! 30 seconds.");
+document.getElementById('backToStart').onclick = ()=>{ show('start'); renderBoard(F('startBoard')); };
+
+function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+function validPhone(v){ return (v.replace(/[^\d]/g,'').length>=8); }
+
+document.getElementById('regForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const name=F('f-name').value.trim(), company=F('f-company').value.trim(),
+        phone=F('f-phone').value.trim(), email=F('f-email').value.trim();
+  let ok=true;
+  const set=(inp,hint,cond,msg)=>{ if(cond){F(inp).classList.remove('err');F(hint).textContent='';F(hint).classList.remove('err');}
+        else{F(inp).classList.add('err');F(hint).textContent=msg;F(hint).classList.add('err');ok=false;} };
+  set('f-name','h-name', name.length>=2, 'Please enter your name');
+  set('f-company','h-company', company.length>=1, 'Please enter your company');
+  set('f-phone','h-phone', validPhone(phone), 'Enter a valid phone number');
+  set('f-email','h-email', validEmail(email), 'Enter a valid email');
+  if(!F('f-consent').checked){ ok=false; toast("Please tick the consent box to play."); }
+  if(!ok) return;
+  player = {name,company,phone,email,consent:true};
+  F('playerTag').textContent = name;
+  startGame();
+});
+
+/* ============================================================
+   GAME ENGINE
+   ============================================================ */
+const stage=F('stage'), basketEl=F('basket'), flash=F('flash');
+let W=0,H=0, basketX=0, basketW=210, pointerX=null;
+/* catch zone = the open top of the house body within the sprite (fractions of sprite) */
+const CATCH_X0=0.06, CATCH_X1=0.57, CATCH_YTOP=0.40, CATCH_BAND=64;
+let pills=[], score=0, streak=0, timeLeft=GAME_SECONDS;
+let running=false, lastSpawn=0, spawnGap=900, elapsed=0, lastTs=0, rafId=null, timerId=null;
+let caughtLog=[]; // {t,type,why}
+
+function sizeStage(){ const r=stage.getBoundingClientRect(); W=r.width; H=r.height; if(basketX===0)basketX=(W-basketW)/2; clampBasket(); }
+window.addEventListener('resize', ()=>{ if(document.getElementById('screen-game').classList.contains('active')) sizeStage(); });
+
+function clampBasket(){ basketX=Math.max(0,Math.min(W-basketW,basketX)); basketEl.style.transform=`translateX(${basketX}px)`; }
+function moveTo(clientX){ const r=stage.getBoundingClientRect(); basketX=clientX-r.left-basketW/2; clampBasket(); }
+stage.addEventListener('mousemove', e=>{ if(running)moveTo(e.clientX); });
+stage.addEventListener('touchmove', e=>{ if(running&&e.touches[0]){moveTo(e.touches[0].clientX); e.preventDefault();} }, {passive:false});
+document.addEventListener('keydown', e=>{ if(!running)return; if(e.key==='ArrowLeft'){basketX-=40;clampBasket();} if(e.key==='ArrowRight'){basketX+=40;clampBasket();} });
+
+function startGame(){
+  show('game');
+  score=0; streak=0; timeLeft=GAME_SECONDS; pills=[]; caughtLog=[]; elapsed=0; spawnGap=900; lastSpawn=0;
+  F('scoreVal').textContent='0'; F('streakVal').textContent='0'; F('timeVal').textContent=GAME_SECONDS;
+  F('timerFill').style.width='100%';
+  [...stage.querySelectorAll('.pill,.float')].forEach(n=>n.remove());
+  requestAnimationFrame(()=>{ sizeStage(); });
+  // countdown
+  const cd=F('countdown'); cd.style.display='grid'; const num=cd.querySelector('.num'); let n=3;
+  num.textContent=n;
+  const ci=setInterval(()=>{ n--; if(n<=0){ clearInterval(ci); cd.style.display='none'; beginRun(); } else if(n===0){num.textContent='GO';} else {num.textContent=n; num.style.animation='none'; void num.offsetWidth; num.style.animation='cd 1s ease';} },800);
+}
+
+function beginRun(){
+  running=true; lastTs=performance.now();
+  timerId=setInterval(()=>{
+    timeLeft--; F('timeVal').textContent=Math.max(0,timeLeft);
+    F('timerFill').style.width=(Math.max(0,timeLeft)/GAME_SECONDS*100)+'%';
+    if(timeLeft<=0) endGame();
+  },1000);
+  rafId=requestAnimationFrame(loop);
+}
+
+function spawnPill(){
+  const isGood = Math.random()<0.55;
+  const pool = isGood?ITEMS.good:ITEMS.bad;
+  const item = pool[Math.floor(Math.random()*pool.length)];
+  const el=document.createElement('div');
+  el.className='pill';
+  el.textContent=item.t;                       // no tag: players must judge for themselves
+  const c=PILL_COLORS[Math.floor(Math.random()*PILL_COLORS.length)];
+  el.style.background=c.bg; el.style.color=c.fg;
+  el.style.left='0px'; el.style.top='-60px';
+  stage.appendChild(el);
+  const w=el.offsetWidth||120;
+  const x=Math.random()*(W-w-10)+5;
+  const speed=64 + Math.random()*26 + elapsed*2.6; // px/sec, gentle ramp so answers are readable
+  pills.push({el,x,y:-60,w,h:el.offsetHeight||40,speed,good:isGood,item,hit:false});
+  el.style.left=x+'px';
+}
+
+function loop(ts){
+  if(!running)return;
+  const dt=Math.min(0.05,(ts-lastTs)/1000); lastTs=ts; elapsed+=dt;
+  // difficulty: spawn faster over time
+  spawnGap = Math.max(560, 950 - elapsed*13);
+  if(ts-lastSpawn>spawnGap){ spawnPill(); lastSpawn=ts; }
+  const BH=basketEl.offsetHeight||basketW;
+  const openingY = (H - BH) + BH*CATCH_YTOP;         // top of the open house body
+  const catchLeft = basketX + basketW*CATCH_X0, catchRight = basketX + basketW*CATCH_X1;
+  for(let i=pills.length-1;i>=0;i--){
+    const p=pills[i];
+    p.y+=p.speed*dt;
+    p.el.style.top=p.y+'px';
+    // catch test at the open roof opening
+    if(!p.hit && p.y+p.h>=openingY && p.y+p.h<=openingY+CATCH_BAND){
+      const cx=p.x+p.w/2;
+      if(cx>=catchLeft && cx<=catchRight){ p.hit=true; catchPill(p); p.el.remove(); pills.splice(i,1); continue; }
+    }
+    if(p.y>H+40){ p.el.remove(); pills.splice(i,1); }
+  }
+  rafId=requestAnimationFrame(loop);
+}
+
+function catchPill(p){
+  const isGood=p.good;
+  let delta = isGood?POINT_GOOD:POINT_BAD;
+  if(isGood){ streak++; if(streak>=3) delta+=STREAK_BONUS; } else { streak=0; }
+  score+=delta;
+  F('scoreVal').textContent=score;
+  F('streakVal').textContent=streak;
+  caughtLog.push({t:p.item.t, type:isGood?'good':'bad', why:p.item.why});
+  // float text
+  const fl=document.createElement('div');
+  fl.className='float '+(delta>=0?'plus':'minus');
+  fl.textContent=(delta>=0?'+':'')+delta;
+  fl.style.left=(p.x)+'px'; fl.style.top=(H-120)+'px';
+  stage.appendChild(fl); setTimeout(()=>fl.remove(),800);
+  // border flash
+  flash.classList.remove('g','r'); void flash.offsetWidth;
+  flash.classList.add(isGood?'g':'r');
+  setTimeout(()=>flash.classList.remove('g','r'),140);
+}
+
+function endGame(){
+  running=false; clearInterval(timerId); cancelAnimationFrame(rafId);
+  [...stage.querySelectorAll('.pill')].forEach(n=>n.remove()); pills=[];
+  // record
+  const rec={...player, score, date:todayKey(), ts:Date.now(), iso:new Date().toISOString()};
+  const all=loadScores(); all.push(rec); saveScores(all);
+  sendToSheet(rec);            // log to the shared Google Sheet (if configured)
+  showScore(rec);
+}
+
+/* ============================================================
+   SCORE SCREEN
+   ============================================================ */
+function showScore(rec){
+  show('score');
+  F('finalScore').textContent=rec.score;
+  const rows=todaysScores();
+  const rank=rows.findIndex(r=>r.ts===rec.ts)+1;
+  const total=rows.length;
+  let msg;
+  if(rank===1) msg=`<b>🥇 #1 on today's board!</b> You're leading the pack.`;
+  else if(rank<=3) msg=`<b>${medal(rank-1)} #${rank}</b> — you're in the prize zone!`;
+  else msg=`You placed <b>#${rank}</b> of ${total} today. Top 3 win prizes — have another go!`;
+  F('placeLine').innerHTML=msg;
+  renderBoard(F('scoreBoardMini'), rec.ts);
+  renderRecap();
+}
+
+function renderRecap(){
+  const el=F('recapList');
+  if(!caughtLog.length){ el.innerHTML='<div class="ri"><em>You didn\'t catch anything this round — dive back in and grab those green pills!</em></div>'; return; }
+  // unique by label, keep first
+  const seen=new Set(); const uniq=[];
+  caughtLog.forEach(c=>{ if(!seen.has(c.t)){seen.add(c.t);uniq.push(c);} });
+  const good=uniq.filter(u=>u.type==='good'), bad=uniq.filter(u=>u.type==='bad');
+  let html='';
+  if(good.length){ html+=uniq.filter(u=>u.type==='good').map(u=> riHtml(u,'g','✓')).join(''); }
+  if(bad.length){ html+='<h3 style="color:var(--red)">⚠ Red flags you caught — let these fall next time:</h3>'+bad.map(u=>riHtml(u,'b','✕')).join(''); }
+  el.innerHTML=html;
+}
+function riHtml(u,cls,ic){ return `<div class="ri ${cls}"><span class="ic">${ic}</span><span><b>${esc(u.t)}</b> — <em>${esc(u.why)}</em></span></div>`; }
+
+document.getElementById('playAgain').onclick=()=>{ if(player) startGame(); else show('register'); };
+document.getElementById('viewBoard').onclick=()=>{ show('start'); renderBoard(F('startBoard')); };
+document.getElementById('finishBtn').onclick=()=>{ player=null; document.getElementById('regForm').reset(); show('start'); renderBoard(F('startBoard')); };
+
+/* ============================================================
+   ADMIN + CSV
+   ============================================================ */
+const modal=F('adminModal');
+F('gear').onclick=()=>{ modal.classList.add('open'); F('adminLogin').style.display='block'; F('adminPanel').style.display='none'; F('adminPass').value=''; F('adminHint').textContent=''; };
+F('adminClose1').onclick=()=>modal.classList.remove('open');
+F('adminClose2').onclick=()=>modal.classList.remove('open');
+F('adminUnlock').onclick=()=>{
+  if(F('adminPass').value===ADMIN_PASS){ F('adminLogin').style.display='none'; F('adminPanel').style.display='block'; refreshAdmin(); }
+  else{ F('adminHint').textContent='Wrong passcode'; F('adminHint').classList.add('err'); }
+};
+function refreshAdmin(){
+  const t=todaysScores();
+  F('leadCountToday').textContent=t.length;
+  F('leadCountAll').textContent=loadScores().length;
+  const top=t.slice(0,3), el=F('adminTop3');
+  if(!top.length){ el.innerHTML='<div class="emptyboard">No players yet today.</div>'; return; }
+  el.innerHTML='<table class="board"><thead><tr><th class="rank">#</th><th>Player</th><th>Company</th><th>Phone</th><th class="sc">Score</th></tr></thead><tbody>'+
+    top.map((r,i)=>`<tr class="top${i+1}"><td class="rank">${medal(i)}</td><td>${esc(r.name)}</td><td>${esc(r.company)}</td><td>${esc(r.phone)}</td><td class="sc">${r.score}</td></tr>`).join('')+
+    '</tbody></table>';
+}
+
+/* ---- Excel export (SpreadsheetML .xls — opens natively in Excel, no library, works offline) ---- */
+function xmlesc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
+function xcell(v,type,style){ const t=(type==='Number'?'Number':'String'); const st=style?` ss:StyleID="${style}"`:''; return `<Cell${st}><Data ss:Type="${t}">${xmlesc(v)}</Data></Cell>`; }
+function xrow(cells){ return `<Row>${cells.join('')}</Row>`; }
+function xsheet(name, headerCells, dataRows){ return `<Worksheet ss:Name="${xmlesc(name.slice(0,31))}"><Table>${xrow(headerCells)}${dataRows.join('')}</Table></Worksheet>`; }
+function buildWorkbook(rows,label){
+  const sorted=[...rows].sort((a,b)=>b.score-a.score);
+  // Top 3 sheet
+  const t3h=['Place','Name','Company','Phone','Email','Score'].map(h=>xcell(h,'String','hdr'));
+  const places=['1st','2nd','3rd'];
+  const t3rows=sorted.slice(0,3).map((r,i)=>xrow([
+    xcell(places[i]||(i+1),'String','t3'), xcell(r.name,'String','t3'), xcell(r.company,'String','t3'),
+    xcell(r.phone,'String','t3'), xcell(r.email,'String','t3'), xcell(r.score,'Number','t3')
+  ]));
+  const top3=xsheet('Top 3 — '+label, t3h, t3rows);
+  // Full players sheet (phone kept as text to protect the leading 0)
+  const ph=['Rank','Name','Company','Phone','Email','Score','Played','Consent'].map(h=>xcell(h,'String','hdr'));
+  const prows=sorted.map((r,i)=>{ const s=i<3?'t3':''; return xrow([
+    xcell(i+1,'Number',s), xcell(r.name,'String',s), xcell(r.company,'String',s), xcell(r.phone,'String',s),
+    xcell(r.email,'String',s), xcell(r.score,'Number',s),
+    xcell(new Date(r.ts).toLocaleString('en-AU'),'String',s), xcell(r.consent?'Yes':'No','String',s)
+  ]); });
+  const players=xsheet('Players — '+label, ph, prows);
+  return '<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n'+
+    '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'+
+    '<Styles>'+
+    '<Style ss:ID="hdr"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#CC3E28" ss:Pattern="Solid"/></Style>'+
+    '<Style ss:ID="t3"><Font ss:Bold="1"/><Interior ss:Color="#FFF0CC" ss:Pattern="Solid"/></Style>'+
+    '</Styles>'+ top3 + players +'</Workbook>';
+}
+
+function toCSV(rows){
+  const head=['Timestamp','Date','Name','Company','Phone','Email','Score','Consent'];
+  const esc=v=>{ v=(v==null?'':String(v)); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const lines=[head.join(',')];
+  rows.forEach(r=>lines.push([r.iso||'',r.date||'',r.name||'',r.company||'',r.phone||'',r.email||'',r.score,r.consent?'Yes':'No'].map(esc).join(',')));
+  return lines.join('\n');
+}
+function download(name,content,mime){
+  const blob=new Blob([content],{type:mime||'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+F('exportTodayXls').onclick=()=>{ const r=todaysScores(); if(!r.length)return toast('No entries today.'); download(`ComplianceCatchers_${todayKey()}.xls`, buildWorkbook(r,todayKey()), 'application/vnd.ms-excel'); toast('Excel file downloaded.'); };
+F('exportAllXls').onclick=()=>{ const r=loadScores(); if(!r.length)return toast('No entries yet.'); download(`ComplianceCatchers_ALL.xls`, buildWorkbook(r,'All days'), 'application/vnd.ms-excel'); toast('Excel file downloaded.'); };
+F('exportToday').onclick=()=>{ const r=loadScores().filter(s=>s.date===todayKey()); if(!r.length)return toast('No entries today.'); download(`ComplianceCatchers_${todayKey()}.csv`,toCSV(r)); toast('CSV downloaded.'); };
+F('exportAll').onclick=()=>{ const r=loadScores(); if(!r.length)return toast('No entries yet.'); download(`ComplianceCatchers_ALL.csv`,toCSV(r)); toast('CSV downloaded.'); };
+F('resetToday').onclick=()=>{ if(confirm('Clear TODAY\'S scoreboard? Export first! This cannot be undone.')){ saveScores(loadScores().filter(s=>s.date!==todayKey())); refreshAdmin(); renderBoard(F('startBoard')); toast('Today cleared.'); } };
+F('resetAll').onclick=()=>{ if(confirm('Wipe ALL saved leads and scores? This cannot be undone.')){ saveScores([]); refreshAdmin(); renderBoard(F('startBoard')); toast('All data wiped.'); } };
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastT=null;
+function toast(msg){ const t=F('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderBoard(F('startBoard'));
+</script>
+</body>
+</html>

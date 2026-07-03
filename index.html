@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APLYiD · Compliance Catchers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FFFDF8; --ink:#26221E; --ink-soft:#5a534b; --red:#CC3E28;
+    --headline:"Bagoss Standard","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --mono:"DM Mono",ui-monospace,"SF Mono",Menlo,monospace;
+    --pane-shadow:6px 6px 0 rgba(38,34,30,.9);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:var(--mono);color:var(--ink);background:var(--cream);
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 27px, rgba(38,34,30,.035) 27px 28px),
+      radial-gradient(circle at 20% 10%, rgba(204,62,40,.05), transparent 60%);
+    -webkit-font-smoothing:antialiased;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  h1,h2,.headline{font-family:var(--headline);font-weight:700;letter-spacing:-.02em;margin:0;}
+  .accent{color:var(--red);}
+  .svgdefs{position:absolute;width:0;height:0;overflow:hidden;}
+  .window{position:relative;background:var(--cream);border:2.5px solid var(--ink);box-shadow:var(--pane-shadow);max-width:760px;width:100%;}
+  .window::before{content:"";position:absolute;inset:-2.5px;border:2.5px solid var(--ink);filter:url(#wobble);pointer-events:none;opacity:.55;}
+  .titlebar{display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--cream);padding:6px 10px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;}
+  .dots{display:flex;gap:6px;}
+  .dots i{width:11px;height:11px;border-radius:50%;display:inline-block;border:1.5px solid var(--cream);}
+  .dots i.r{background:var(--red);} .dots i.y{background:#e8b23a;} .dots i.g{background:#7fae7f;}
+  .tt{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .body{padding:30px 34px 34px;}
+  .brandrow{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .logo{height:36px;width:auto;display:block;}
+  .badge{font-size:11px;border:2px solid var(--ink);padding:3px 8px;text-transform:uppercase;letter-spacing:.08em;background:var(--red);color:var(--cream);}
+  .mega{font-family:var(--headline);font-weight:700;font-size:clamp(40px,9vw,72px);line-height:.92;letter-spacing:-.03em;margin:6px 0 4px;}
+  .sub{font-size:14px;color:var(--ink-soft);margin:8px 0 26px;line-height:1.5;}
+  .pick{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:12px;}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:620px){.cards{grid-template-columns:1fr;}}
+  .card{
+    display:block;text-decoration:none;color:var(--ink);
+    border:2.5px solid var(--ink);background:#fff;padding:22px 22px 20px;
+    box-shadow:5px 5px 0 var(--ink);transition:transform .06s,box-shadow .06s;
+  }
+  .card:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink);}
+  .card:active{transform:translate(3px,3px);box-shadow:2px 2px 0 var(--ink);}
+  .flag{font-size:46px;line-height:1;}
+  .card h2{font-size:26px;margin:12px 0 4px;}
+  .card .rule{font-size:12.5px;color:var(--ink-soft);line-height:1.5;}
+  .card .go{display:inline-block;margin-top:14px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;font-size:13px;color:var(--red);}
+  .foot{font-size:10.5px;color:var(--ink-soft);margin-top:24px;line-height:1.5;}
+</style>
+</head>
+<body>
+<svg class="svgdefs" aria-hidden="true">
+  <filter id="wobble"><feTurbulence type="fractalNoise" baseFrequency="0.02 0.03" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.5"/></filter>
+</svg>
+
+<div class="window">
+  <div class="titlebar">
+    <span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+    <span class="tt">compliance_catchers.exe — choose your region</span>
+  </div>
+  <div class="body">
+    <div class="brandrow">
+      <img src="images/APLYiD-logo.svg" alt="APLYiD" class="logo">
+      <span class="badge">AML Compliance Game</span>
+    </div>
+    <h1 class="mega">COMPLIANCE<br><span class="accent">CATCHERS</span></h1>
+    <p class="sub">Test your anti-money-laundering know-how. Catch the good compliance moves, dodge the red flags — 30 seconds on the clock.</p>
+
+    <div class="pick">▸ Pick your edition</div>
+    <div class="cards">
+      <a class="card" href="au.html">
+        <span class="flag">🇦🇺</span>
+        <h2>Australia</h2>
+        <div class="rule">AML/CTF Tranche 2 for real estate agents — AUSTRAC, SMRs, KYC/KYB.</div>
+        <span class="go">Play the AU game →</span>
+      </a>
+      <a class="card" href="uk.html">
+        <span class="flag">🇬🇧</span>
+        <h2>United Kingdom</h2>
+        <div class="rule">Money Laundering Regs 2017 for estate agents — HMRC, SARs to the NCA, CDD.</div>
+        <span class="go">Play the UK game →</span>
+      </a>
+    </div>
+
+    <p class="foot">Educational game. Not legal advice. Powered by APLYiD.</p>
+  </div>
+</div>
+</body>
+</html>
