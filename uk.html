@@ -448,9 +448,14 @@
 /* ============================================================
    CONFIG
    ============================================================ */
-const ADMIN_PASS = "aplyid";           // change before the event
+const ADMIN_PASS = "amlmonster!";           // change before the event
 const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbzRjxN0oWQRX2zVuYNoSRfp2kzhhVZhWI_cfOS-l04iTBxno-rS0EaPxse5BIiv3ydg/exec";  // <-- paste your Google Apps Script Web App URL here to log scores to a shared Google Sheet
 const REGION = "United Kingdom"; // this build's label in the sheet
+// ---- HubSpot Forms integration (leads go straight into HubSpot as contacts) ----
+const HUBSPOT_PORTAL_ID = "";   // <-- your HubSpot Hub ID (the numeric portal id)
+const HUBSPOT_FORM_GUID = "";   // <-- your HubSpot form GUID
+// ---- SharePoint / Excel via Power Automate (each result becomes a row in an Excel table) ----
+const POWER_AUTOMATE_URL = "";  // <-- paste your Power Automate "When an HTTP request is received" URL
 const GAME_SECONDS = 30;
 const STORE_KEY = "aplyid_aml_uk_scores_v1";
 const POINT_GOOD = 10, POINT_BAD = -10, STREAK_BONUS = 5;
@@ -506,6 +511,30 @@ function sendToSheet(rec){
   try{
     fetch(SHEET_ENDPOINT,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
       body:JSON.stringify({region:REGION,name:rec.name,company:rec.company,phone:rec.phone,email:rec.email,score:rec.score,consent:rec.consent,iso:rec.iso})}).catch(function(){});
+  }catch(e){}
+}
+function sendToSharePoint(rec){
+  if(!POWER_AUTOMATE_URL) return;             // not configured -> skip
+  try{
+    fetch(POWER_AUTOMATE_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({region:REGION,name:rec.name,company:rec.company,phone:rec.phone,email:rec.email,score:rec.score,consent:rec.consent,iso:rec.iso})}).catch(function(){});
+  }catch(e){}
+}
+function sendToHubSpot(rec){
+  if(!HUBSPOT_PORTAL_ID || !HUBSPOT_FORM_GUID) return;   // not configured -> skip
+  var parts=(rec.name||"").trim().split(/\s+/);
+  var first=parts.shift()||(rec.name||""); var last=parts.join(" ");
+  var payload={fields:[
+      {name:"email",value:rec.email||""},
+      {name:"firstname",value:first},
+      {name:"lastname",value:last},
+      {name:"company",value:rec.company||""},
+      {name:"phone",value:rec.phone||""}
+    ],
+    context:{pageName:"Compliance Catchers ("+REGION+")"}};
+  try{
+    fetch("https://api.hsforms.com/submissions/v3/integration/submit/"+HUBSPOT_PORTAL_ID+"/"+HUBSPOT_FORM_GUID,
+      {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(function(){});
   }catch(e){}
 }
 function todayKey(d=new Date()){ return d.toLocaleDateString('en-CA'); } // YYYY-MM-DD local
@@ -569,6 +598,7 @@ document.getElementById('regForm').addEventListener('submit', e=>{
   if(!F('f-consent').checked){ ok=false; toast("Please tick the consent box to play."); }
   if(!ok) return;
   player = {name,company,phone,email,consent:true};
+  sendToHubSpot(player);   // push the lead straight to HubSpot at registration
   F('playerTag').textContent = name;
   startGame();
 });
@@ -684,6 +714,7 @@ function endGame(){
   const rec={...player, score, date:todayKey(), ts:Date.now(), iso:new Date().toISOString()};
   const all=loadScores(); all.push(rec); saveScores(all);
   sendToSheet(rec);            // log to the shared Google Sheet (if configured)
+  sendToSharePoint(rec);       // add a row to the SharePoint Excel table (if configured)
   showScore(rec);
 }
 
