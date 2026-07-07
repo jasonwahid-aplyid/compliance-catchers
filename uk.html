@@ -127,6 +127,7 @@
   }
   .aplyid-logo .dot{color:var(--red);}
   .aplyid-logo-img{height:36px;width:auto;display:block;}
+  .board-monster{position:absolute;top:-42px;right:-16px;width:96px;height:auto;z-index:4;pointer-events:none;filter:drop-shadow(2px 3px 0 rgba(38,34,30,.22));}
   .badge{
     font-size:11px;border:2px solid var(--ink);padding:3px 8px;
     text-transform:uppercase;letter-spacing:.08em;background:var(--red);color:var(--cream);
@@ -275,18 +276,12 @@
         <img src="images/APLYiD-logo.svg" alt="APLYiD" class="aplyid-logo-img">
         <span class="badge">UK Estate Agents · MLR 2017</span>
       </div>
-      <h1 class="megatitle">COMPLIANCE<br><span class="accent">CATCHERS</span>
-        <small>Catch the good compliance moves. Dodge the red flags. No hints — 30 seconds on the clock.</small>
-      </h1>
+      <h1 class="megatitle">Compliance<br><span class="accent">Catchers</span></h1>
 
       <div class="start-grid">
         <div>
           <div class="rulebox">
-            You're a UK estate agent under the <b>Money Laundering Regulations 2017</b>.
-            Pills rain down naming a CDD / KYC / PEP / SAR action — but they <b>won't tell you</b> if it's smart or dodgy.
-            <b>Catch the good compliance moves (+10)</b> and <b>let the red flags fall past (−10 if you catch one)</b>.
-            You'll only find out if you were right when you catch it — trust your compliance instincts!
-            Build a streak for bonus points. Highest daily scores win prizes!
+            Catch the good compliance moves. Dodge the red flags. No hints — 30 seconds on the clock.
             <div class="legend">
               <div class="row"><span class="swatch" style="background:var(--green)">+</span> Caught a good move → <b>+10 &amp; green flash</b></div>
               <div class="row"><span class="swatch" style="background:var(--red)">−</span> Caught a red flag → <b>−10 &amp; red flash</b></div>
@@ -299,7 +294,8 @@
           <p class="footnote">Educational game for the event. Not legal advice. UK estate agency businesses must register with HMRC and follow the Money Laundering Regulations 2017 and the Proceeds of Crime Act 2002. Powered by APLYiD.</p>
         </div>
 
-        <div class="window" style="box-shadow:4px 4px 0 var(--ink);">
+        <div class="window" style="box-shadow:4px 4px 0 var(--ink);position:relative;">
+          <img src="images/AML-Monster-triangle.png" alt="" class="board-monster">
           <div class="titlebar"><span class="tt">🏆 daily_leaderboard.txt</span></div>
           <div style="padding:10px 12px;">
             <div id="startBoard"></div>
