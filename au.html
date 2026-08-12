@@ -91,7 +91,7 @@
   #app{
     position:fixed;inset:0;
     display:flex;align-items:center;justify-content:center;
-    padding:18px;
+    padding:18px;z-index:1;
   }
   .screen{display:none;width:100%;max-width:940px;}
   .screen.active{display:block;animation:pop .25s ease;}
@@ -128,6 +128,9 @@
   .aplyid-logo .dot{color:var(--red);}
   .aplyid-logo-img{height:36px;width:auto;display:block;}
   .board-monster{position:absolute;top:-56px;right:-22px;width:134px;height:auto;z-index:4;pointer-events:none;filter:drop-shadow(2px 3px 0 rgba(38,34,30,.22));}
+  #ssaver{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none;opacity:.5;}
+  .ss-pill{position:absolute;padding:6px 12px;border-radius:22px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;will-change:transform;}
+  .ss-monster{position:absolute;width:120px;height:auto;will-change:transform;}
   .badge{
     font-size:11px;border:none;padding:5px 12px;border-radius:999px;
     text-transform:uppercase;letter-spacing:.08em;background:var(--red);color:var(--cream);
@@ -262,6 +265,8 @@
   </filter>
 </svg>
 
+<div id="ssaver" aria-hidden="true"></div>
+
 <div id="app">
 
   <!-- ============ START / HOLD SCREEN ============ -->
@@ -274,7 +279,7 @@
     <div class="pane-body">
       <div class="brandrow">
         <img src="images/APLYiD-logo.svg" alt="APLYiD" class="aplyid-logo-img">
-        <span class="badge">Tranche 2 · Live 1 Jul 2026</span>
+        <span class="badge">Tranche 2 Live Now</span>
       </div>
       <h1 class="megatitle">Compliance <span class="accent">Catchers</span></h1>
 
@@ -294,8 +299,7 @@
           <p class="footnote">Educational game for the event. Not legal advice. AML/CTF obligations for real estate professionals commence 1&nbsp;July&nbsp;2026 under AUSTRAC. Powered by APLYiD.</p>
         </div>
 
-        <div class="window" style="box-shadow:4px 4px 0 var(--ink);position:relative;">
-          <img src="images/AML-Monster-triangle.png" alt="" class="board-monster">
+        <div class="window" style="box-shadow:4px 4px 0 var(--ink);">
           <div class="titlebar"><span class="tt">🏆 daily_leaderboard.txt</span></div>
           <div style="padding:10px 12px;">
             <div id="startBoard"></div>
@@ -833,6 +837,42 @@ function toast(msg){ const t=F('toast'); t.textContent=msg; t.classList.add('sho
    INIT
    ============================================================ */
 renderBoard(F('startBoard'));
+
+/* ---- AU waiting-room screensaver: ambient falling pills + the odd monster ---- */
+(function(){
+  var layer=document.getElementById('ssaver');
+  if(!layer || typeof ITEMS==='undefined') return;
+  var MONSTER_SRC="images/AML-Monster-triangle.png";
+  var WORDS=ITEMS.good.concat(ITEMS.bad).map(function(o){return o.t;});
+  function rnd(a,b){return a+Math.random()*(b-a);}
+  function startActive(){var s=document.getElementById('screen-start');return s&&s.classList.contains('active');}
+  function fall(node,size,rot){
+    var H=layer.clientHeight||520;
+    node.animate([{transform:'translate(0,-'+size+'px)'},
+                  {transform:'translate('+rnd(-35,35)+'px,'+(H+size+60)+'px) rotate('+rnd(-rot,rot)+'deg)'}],
+                 {duration:rnd(8000,12500),easing:'linear'}).onfinish=function(){node.remove();};
+  }
+  function dropPill(){
+    if(!startActive())return;
+    var W=layer.clientWidth||700;
+    var el=document.createElement('div'); el.className='ss-pill';
+    el.textContent=WORDS[Math.floor(Math.random()*WORDS.length)];
+    var c=PILL_COLORS[Math.floor(Math.random()*PILL_COLORS.length)];
+    el.style.background=c.bg; el.style.color=c.fg;
+    el.style.left=rnd(4,Math.max(4,W-150))+'px'; el.style.top='0px';
+    layer.appendChild(el); fall(el,50,10);
+  }
+  function dropMonster(){
+    if(!startActive())return;
+    var W=layer.clientWidth||700;
+    var img=document.createElement('img'); img.className='ss-monster'; img.src=MONSTER_SRC; img.alt='';
+    img.style.left=rnd(4,Math.max(4,W-130))+'px'; img.style.top='0px';
+    layer.appendChild(img); fall(img,130,45);
+  }
+  setInterval(dropPill,1500);
+  setInterval(dropMonster,16000);
+  setTimeout(dropPill,500); setTimeout(dropPill,1700); setTimeout(dropMonster,6000);
+})();
 </script>
 </body>
 </html>
